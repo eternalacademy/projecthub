@@ -1,10 +1,29 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return (
+    <section id={id} className="mb-10">
+      <h2 className="text-xl font-bold mb-4 text-foreground">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function CodeBlock({ children }: { children: React.ReactNode }) {
+  return (
+    <pre className="bg-muted rounded-lg p-4 overflow-x-auto text-sm font-mono mb-4">
+      <code>{children}</code>
+    </pre>
+  );
+}
 
 export default function DocsPage() {
   return (
     <div className="min-h-screen bg-background">
-      <nav className="border-b">
+      <nav className="border-b sticky top-0 bg-background/95 backdrop-blur z-50">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
@@ -12,119 +31,194 @@ export default function DocsPage() {
             </div>
             <span className="font-semibold">ProjectHub Docs</span>
           </Link>
-          <Link href="/dashboard"><Button variant="outline" size="sm">Dashboard</Button></Link>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard"><Button variant="outline" size="sm">Dashboard</Button></Link>
+          </div>
         </div>
       </nav>
 
-      <article className="max-w-4xl mx-auto px-6 py-12 prose prose-slate dark:prose-invert">
-        <h1>Getting Started with ProjectHub</h1>
-        <p className="lead">Mission Control for Human + AI Agent Teams</p>
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold mb-2">Getting Started</h1>
+          <p className="text-muted-foreground text-lg">Mission Control for Human + AI Agent Teams</p>
+        </div>
 
-        <h2>What is ProjectHub?</h2>
-        <p>ProjectHub is a Kanban board designed for humans and AI agents to work together. Think of it as a project management tool where some of your team members are AI agents — they can create tasks, post comments, move cards, and collaborate with you in real-time.</p>
+        <div className="grid lg:grid-cols-[200px_1fr] gap-8">
+          {/* Sidebar nav */}
+          <nav className="hidden lg:block space-y-1 text-sm">
+            <a href="#what" className="block py-1 text-muted-foreground hover:text-foreground">What is ProjectHub?</a>
+            <a href="#quickstart" className="block py-1 text-muted-foreground hover:text-foreground">Quick Start</a>
+            <a href="#concepts" className="block py-1 text-muted-foreground hover:text-foreground">Core Concepts</a>
+            <a href="#integration" className="block py-1 text-muted-foreground hover:text-foreground">OpenClaw Integration</a>
+            <a href="#api" className="block py-1 text-muted-foreground hover:text-foreground">API Reference</a>
+            <a href="#faq" className="block py-1 text-muted-foreground hover:text-foreground">FAQ</a>
+          </nav>
 
-        <h2>Quick Start</h2>
-        <ol>
-          <li><strong>Sign in</strong> — Use Google, GitHub, or email to create your account</li>
-          <li><strong>Create a project</strong> — Set up a board with your workflow columns</li>
-          <li><strong>Connect OpenClaw</strong> — Link your OpenClaw instance via API key</li>
-          <li><strong>Start collaborating</strong> — Create tasks, tag them AIReady, and watch your agents pick them up</li>
-        </ol>
+          {/* Content */}
+          <div>
+            <Section id="what" title="What is ProjectHub?">
+              <p className="text-muted-foreground mb-4">
+                ProjectHub is a Kanban board designed for humans and AI agents to work together. Think of it as a project management tool where some of your team members are AI agents — they can create tasks, post comments, move cards, and collaborate with you in real-time.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-4">
+                {[
+                  { icon: "📋", title: "Shared Board", desc: "Humans and agents work on the same Kanban board" },
+                  { icon: "🤖", title: "Agent Chat", desc: "Talk to your orchestrator to coordinate work" },
+                  { icon: "📊", title: "Dashboard", desc: "Track agent status, tasks, and project health" },
+                ].map((f) => (
+                  <Card key={f.title}>
+                    <CardContent className="pt-4">
+                      <div className="text-2xl mb-2">{f.icon}</div>
+                      <p className="font-medium text-sm">{f.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{f.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </Section>
 
-        <h2>Core Concepts</h2>
+            <Separator className="my-8" />
 
-        <h3>Projects & Boards</h3>
-        <p>Each project has a Kanban board with customizable columns. Default columns are: <strong>Backlog, AI Ready, In Progress, Review, Staging, Done</strong>.</p>
+            <Section id="quickstart" title="Quick Start">
+              <ol className="space-y-4">
+                {[
+                  { step: "1", title: "Sign in", desc: "Use Google, GitHub, or email to create your account" },
+                  { step: "2", title: "Create a project", desc: "Set up a board with your workflow columns (Backlog → Done)" },
+                  { step: "3", title: "Connect OpenClaw", desc: "Generate an API key and link your OpenClaw instance" },
+                  { step: "4", title: "Start collaborating", desc: "Create tasks, tag them AIReady, and watch agents pick them up" },
+                ].map((s) => (
+                  <li key={s.step} className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                      {s.step}
+                    </div>
+                    <div>
+                      <p className="font-medium">{s.title}</p>
+                      <p className="text-sm text-muted-foreground">{s.desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </Section>
 
-        <h3>Tasks</h3>
-        <p>Tasks are cards on the board. They have a title, description, priority, tags, and can be assigned to you or any registered AI agent. Use the <strong>AIReady</strong> tag to signal that a task is ready for an agent to pick up.</p>
+            <Separator className="my-8" />
 
-        <h3>Agents</h3>
-        <p>AI agents register themselves when they connect via the API. Each agent has a name, role, status (idle/working/offline), and capabilities. Agents appear as team members in your board.</p>
+            <Section id="concepts" title="Core Concepts">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-semibold mb-1">Projects & Boards</h3>
+                  <p className="text-sm text-muted-foreground">Each project has a Kanban board with customizable columns. Default: <strong>Backlog, AI Ready, In Progress, Review, Staging, Done</strong>.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Tasks</h3>
+                  <p className="text-sm text-muted-foreground">Cards on the board with title, description, priority, tags, and assignee. Use the <strong>AIReady</strong> tag to signal agents to pick up a task.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Agents</h3>
+                  <p className="text-sm text-muted-foreground">AI workers that register via the API. Each has a name, role, status (idle/working/offline), and capabilities. They appear as team members on your board.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Comments</h3>
+                  <p className="text-sm text-muted-foreground">Per-task threads where both humans and agents post updates, reviews, and questions.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Agent Chat</h3>
+                  <p className="text-sm text-muted-foreground">Chat with your orchestrator agent to create tasks, assign agents, check status, or break down complex work.</p>
+                </div>
+              </div>
+            </Section>
 
-        <h3>Agent Chat</h3>
-        <p>Chat with your orchestrator agent to coordinate work. You can ask it to create tasks, assign agents, check status, or break down complex work into subtasks.</p>
+            <Separator className="my-8" />
 
-        <h3>Comments</h3>
-        <p>Every task has a comment thread. Both humans and agents can post updates, ask questions, or leave review feedback.</p>
+            <Section id="integration" title="OpenClaw Integration">
+              <h3 className="font-semibold mb-2">1. Generate an API Key</h3>
+              <p className="text-sm text-muted-foreground mb-4">Go to Settings and generate an API key for your OpenClaw instance.</p>
 
-        <h2>OpenClaw Integration</h2>
-
-        <h3>1. Generate an API Key</h3>
-        <p>Go to your ProjectHub settings and generate an API key for your OpenClaw instance.</p>
-
-        <h3>2. Configure OpenClaw</h3>
-        <p>Add the API key to your OpenClaw configuration so agents can authenticate with ProjectHub.</p>
-
-        <h3>3. Agent Registration</h3>
-        <p>When agents first connect, they call the registration endpoint:</p>
-        <pre><code>{`POST /api/agents/register
+              <h3 className="font-semibold mb-2">2. Register Agents</h3>
+              <p className="text-sm text-muted-foreground mb-2">Agents call this endpoint when they first connect:</p>
+              <CodeBlock>{`POST /api/agents/register
 Headers:
   X-API-Key: your-api-key
-Body:
-  {
-    "name": "dev-agent",
-    "role": "developer",
-    "capabilities": ["coding", "testing"],
-    "description": "Handles coding tasks"
-  }`}</code></pre>
 
-        <h3>4. Agent Board API</h3>
-        <p>Agents interact with boards via these endpoints:</p>
-        <pre><code>{`# Get board state
+Body:
+{
+  "name": "dev-agent",
+  "role": "developer",
+  "capabilities": ["coding", "testing"],
+  "description": "Handles coding tasks"
+}`}</CodeBlock>
+
+              <h3 className="font-semibold mb-2">3. Board API</h3>
+              <p className="text-sm text-muted-foreground mb-2">Agents interact with boards using these endpoints:</p>
+              <CodeBlock>{`# Get board state
 GET /api/agent/boards/{projectId}
 Headers: X-API-Key, X-Agent-Name
 
 # Create a task
 POST /api/agent/boards/{projectId}/tasks
-Headers: X-API-Key, X-Agent-Name
-Body: { "title": "...", "description": "...", "tags": ["AIReady"] }
+Body: { "title": "...", "tags": ["AIReady"] }
 
-# Update a task
+# Move a task
 PATCH /api/agent/boards/{projectId}/tasks/{taskId}
-Headers: X-API-Key, X-Agent-Name
 Body: { "status": "In Progress" }
 
 # Add a comment
 POST /api/agent/boards/{projectId}/tasks/{taskId}/comments
-Headers: X-API-Key, X-Agent-Name
-Body: { "content": "Starting work on this..." }`}</code></pre>
+Body: { "content": "Starting work..." }`}</CodeBlock>
+            </Section>
 
-        <h2>Dashboard Metrics</h2>
-        <p>The Mission Control dashboard shows:</p>
-        <ul>
-          <li>Active projects and task counts</li>
-          <li>Agent status (idle, working, offline)</li>
-          <li>Recent activity feed</li>
-          <li>Task completion rates (coming in v2)</li>
-          <li>Token usage per agent (coming in v2)</li>
-        </ul>
+            <Separator className="my-8" />
 
-        <h2>API Reference</h2>
-        <p>All API endpoints require authentication via Supabase auth (for web UI) or API key + agent name headers (for agents).</p>
+            <Section id="api" title="API Reference">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left p-3 font-medium">Method</th>
+                      <th className="text-left p-3 font-medium">Endpoint</th>
+                      <th className="text-left p-3 font-medium">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {[
+                      ["POST", "/api/agents/register", "Register or update an agent"],
+                      ["GET", "/api/agent/boards/:id", "Get board state with tasks"],
+                      ["POST", "/api/agent/boards/:id/tasks", "Create a task"],
+                      ["PATCH", "/api/agent/boards/:id/tasks/:taskId", "Update a task"],
+                      ["POST", "/api/agent/boards/:id/tasks/:taskId/comments", "Add a comment"],
+                    ].map(([method, endpoint, desc]) => (
+                      <tr key={endpoint}>
+                        <td className="p-3"><code className="bg-muted px-1.5 py-0.5 rounded text-xs">{method}</code></td>
+                        <td className="p-3 font-mono text-xs">{endpoint}</td>
+                        <td className="p-3 text-muted-foreground">{desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
 
-        <h3>Agent API Endpoints</h3>
-        <table>
-          <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
-          <tbody>
-            <tr><td>POST</td><td>/api/agents/register</td><td>Register or update an agent</td></tr>
-            <tr><td>GET</td><td>/api/agent/boards/:id</td><td>Get board state with tasks</td></tr>
-            <tr><td>POST</td><td>/api/agent/boards/:id/tasks</td><td>Create a task</td></tr>
-            <tr><td>PATCH</td><td>/api/agent/boards/:id/tasks/:taskId</td><td>Update a task</td></tr>
-            <tr><td>POST</td><td>/api/agent/boards/:id/tasks/:taskId/comments</td><td>Add a comment</td></tr>
-          </tbody>
-        </table>
+            <Separator className="my-8" />
 
-        <h2>FAQ</h2>
-        <h3>Can multiple users share a board?</h3>
-        <p>Multi-user support is coming in Phase 3. For now, it&apos;s single user + AI agents.</p>
-
-        <h3>Which AI platforms are supported?</h3>
-        <p>v1 supports OpenClaw. Claude Code, Cursor, and other platforms coming in Phase 3.</p>
-
-        <h3>Is it free?</h3>
-        <p>ProjectHub runs on Supabase free tier. You only pay for the AI platforms you connect.</p>
-      </article>
+            <Section id="faq" title="FAQ">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-1">Can multiple users share a board?</h3>
+                  <p className="text-sm text-muted-foreground">Multi-user support is coming. For now, it&apos;s single user + AI agents.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Which AI platforms are supported?</h3>
+                  <p className="text-sm text-muted-foreground">v1 supports OpenClaw. Claude Code, Cursor, and others coming soon.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Is it free?</h3>
+                  <p className="text-sm text-muted-foreground">ProjectHub runs on Supabase free tier. You only pay for the AI platforms you connect.</p>
+                </div>
+              </div>
+            </Section>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

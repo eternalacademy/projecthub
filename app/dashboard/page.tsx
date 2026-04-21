@@ -73,6 +73,12 @@ export default function Dashboard() {
     }
   };
 
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+  };
+
   const totalTasks = projects.reduce((sum, p) => {
     const counts = p.task_counts_by_status || {};
     return sum + Object.values(counts).reduce((a: number, b: any) => a + Number(b), 0);
@@ -98,14 +104,18 @@ export default function Dashboard() {
               <span className="font-semibold hidden sm:inline">ProjectHub</span>
             </Link>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Link href="/chat">
-              <Button variant="ghost" size="sm"><MessageSquare className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Agent Chat</span></Button>
+              <Button variant="ghost" size="sm"><MessageSquare className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Chat</span></Button>
             </Link>
             <Link href="/agents">
               <Button variant="ghost" size="sm"><Bot className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Agents</span></Button>
             </Link>
+            <Link href="/docs">
+              <Button variant="ghost" size="sm"><span className="hidden sm:inline">Docs</span></Button>
+            </Link>
             <ThemeToggle />
+            <Button variant="ghost" size="sm" onClick={handleSignOut}>Sign out</Button>
           </div>
         </div>
       </nav>

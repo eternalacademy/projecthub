@@ -21,8 +21,10 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Protect dashboard and project routes
-  if (!user && !request.nextUrl.pathname.startsWith("/auth") && !request.nextUrl.pathname.startsWith("/api/agent") && request.nextUrl.pathname !== "/") {
+  const publicPaths = ["/", "/docs", "/auth"];
+  const isPublic = publicPaths.some((p) => request.nextUrl.pathname.startsWith(p)) || request.nextUrl.pathname.startsWith("/api/agent");
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/sign-in";
     return NextResponse.redirect(url);
