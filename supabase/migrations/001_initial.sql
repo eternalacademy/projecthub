@@ -5,6 +5,14 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ==========================================
+-- Drop old v1 tables if they exist
+-- ==========================================
+DROP TABLE IF EXISTS ph_timeline CASCADE;
+DROP TABLE IF EXISTS ph_notes CASCADE;
+DROP TABLE IF EXISTS ph_tasks CASCADE;
+DROP TABLE IF EXISTS ph_projects CASCADE;
+
+-- ==========================================
 -- PLATFORM CONNECTIONS
 -- ==========================================
 CREATE TABLE IF NOT EXISTS ph_platform_connections (
@@ -60,7 +68,7 @@ CREATE TABLE IF NOT EXISTS ph_tasks (
   priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'critical')),
   tags TEXT[] DEFAULT '{}',
   assigned_to UUID,
-  assignee_type TEXT CHECK (assignee_type IN ('agent', 'user', NULL)),
+  assignee_type TEXT CHECK (assignee_type IN ('agent', 'user')),
   created_by UUID,
   created_by_type TEXT DEFAULT 'user' CHECK (created_by_type IN ('agent', 'user')),
   position INTEGER DEFAULT 0,
@@ -129,7 +137,6 @@ CREATE TABLE IF NOT EXISTS ph_agent_metrics (
 -- ==========================================
 CREATE INDEX IF NOT EXISTS idx_ph_tasks_project ON ph_tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_ph_tasks_status ON ph_tasks(project_id, status);
-CREATE INDEX IF NOT EXISTS idx_ph_tasks_assigned ON ph_tasks(assigned_to) WHERE assigned_to IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ph_comments_task ON ph_comments(task_id);
 CREATE INDEX IF NOT EXISTS idx_ph_activity_project ON ph_activity_log(project_id);
 CREATE INDEX IF NOT EXISTS idx_ph_activity_created ON ph_activity_log(created_at DESC);
@@ -137,7 +144,7 @@ CREATE INDEX IF NOT EXISTS idx_ph_chat_created ON ph_chat_messages(created_at DE
 CREATE INDEX IF NOT EXISTS idx_ph_agents_status ON ph_agents(status);
 
 -- ==========================================
--- Enable RLS (Row Level Security)
+-- Enable RLS
 -- ==========================================
 ALTER TABLE ph_platform_connections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ph_agents ENABLE ROW LEVEL SECURITY;
@@ -148,8 +155,25 @@ ALTER TABLE ph_activity_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ph_chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ph_agent_metrics ENABLE ROW LEVEL SECURITY;
 
--- For v1 (single user), allow all operations for authenticated users
--- This will be tightened in v2 for multi-user
+-- Drop old policies if they exist
+DROP POLICY IF EXISTS "Authenticated users can manage all" ON ph_projects;
+DROP POLICY IF EXISTS "Authenticated users can manage all" ON ph_tasks;
+DROP POLICY IF EXISTS "Authenticated users can manage all" ON ph_comments;
+DROP POLICY IF EXISTS "Authenticated users can manage all" ON ph_agents;
+DROP POLICY IF EXISTS "Authenticated users can manage all" ON ph_activity_log;
+DROP POLICY IF EXISTS "Authenticated users can manage all" ON ph_chat_messages;
+DROP POLICY IF EXISTS "Authenticated users can manage all" ON ph_agent_metrics;
+DROP POLICY IF EXISTS "Authenticated users can manage all" ON ph_platform_connections;
+DROP POLICY IF EXISTS "Service role full access" ON ph_projects;
+DROP POLICY IF EXISTS "Service role full access" ON ph_tasks;
+DROP POLICY IF EXISTS "Service role full access" ON ph_comments;
+DROP POLICY IF EXISTS "Service role full access" ON ph_agents;
+DROP POLICY IF EXISTS "Service role full access" ON ph_activity_log;
+DROP POLICY IF EXISTS "Service role full access" ON ph_chat_messages;
+DROP POLICY IF EXISTS "Service role full access" ON ph_agent_metrics;
+DROP POLICY IF EXISTS "Service role full access" ON ph_platform_connections;
+
+-- v1: allow authenticated users full access
 CREATE POLICY "Authenticated users can manage all" ON ph_projects FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated users can manage all" ON ph_tasks FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated users can manage all" ON ph_comments FOR ALL USING (auth.role() = 'authenticated');
@@ -159,18 +183,12 @@ CREATE POLICY "Authenticated users can manage all" ON ph_chat_messages FOR ALL U
 CREATE POLICY "Authenticated users can manage all" ON ph_agent_metrics FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated users can manage all" ON ph_platform_connections FOR ALL USING (auth.role() = 'authenticated');
 
--- Service role can do everything (for API endpoints)
-CREATE POLICY "Service role full access" ON ph_projects FOR ALL USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access" ON ph_tasks FOR ALL USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access" ON ph_comments FOR ALL USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access" ON ph_agents FOR ALL USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access" ON ph_activity_log FOR ALL USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access" ON ph_chat_messages FOR ALL USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access" ON ph_agent_metrics FOR ALL USING (auth.role() = 'service_role');
-CREATE POLICY "Service role full access" ON ph_platform_connections FOR ALL USING (auth.role() = 'service_role');
-
--- ==========================================
--- Drop old tables if they exist (from v1)
--- ==========================================
--- Only run these if upgrading from v1:
--- DROP TABLE IF EXISTS ph_timeline CASCADE;
+-- Service role full access (for agent API)
+CREATE POLICY "Service role full access" ON ph_projects FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access" ON ph_tasks FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access" ON ph_comments FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access" ON ph_agents FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access" ON ph_activity_log FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access" ON ph_chat_messages FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access" ON ph_agent_metrics FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Service role full access" ON ph_platform_connections FOR ALL USING (true) WITH CHECK (true);
