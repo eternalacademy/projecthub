@@ -22,10 +22,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   // Log status changes
   if (updates.status) {
-    await supabase.from("ph_timeline").insert({
-      project_id: id, event_type: "task_updated",
-      title: `Task moved to ${updates.status}`,
-      description: data?.title || "",
+    await supabase.from("ph_activity_log").insert({
+      project_id: id, task_id: taskId, action: "task_moved",
+      details: { new_status: updates.status },
     });
   }
 
@@ -40,5 +39,10 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
   const { error } = await supabase.from("ph_tasks").delete().eq("id", taskId).eq("project_id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await supabase.from("ph_activity_log").insert({
+    project_id: id, task_id: taskId, action: "task_deleted",
+  });
+
   return NextResponse.json({ success: true });
 }

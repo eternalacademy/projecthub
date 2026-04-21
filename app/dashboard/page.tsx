@@ -1,60 +1,58 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
-import { Plus, Folder, CheckSquare, FileText, Clock, ArrowRight, MoreHorizontal } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { toast } from "sonner";
+import {
+  Plus, FolderKanban, Bot, MessageSquare, Activity,
+  CheckCircle2, Clock, AlertCircle, Loader2,
+} from "lucide-react";
 
-interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  status: string;
-  color: string;
-  icon: string;
-  channel_url: string | null;
-  repo_url: string | null;
-  updated_at: string;
-  ph_tasks: { count: number }[];
-  ph_notes: { count: number }[];
+interface Agent {
+  id: string; name: string; role: string | null; status: string; last_active_at: string | null;
 }
 
-const statusColors: Record<string, string> = {
-  active: "bg-green-50 text-green-700",
-  paused: "bg-amber-50 text-amber-700",
-  completed: "bg-blue-50 text-blue-700",
-  archived: "bg-slate-100 text-slate-500",
-};
+interface Project {
+  id: string; name: string; description: string | null; color: string; status: string;
+  task_counts_by_status?: Record<string, number>;
+}
 
 export default function Dashboard() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: "", description: "", color: "#7c3aed", repo_url: "", channel_url: "" });
+  const [newProject, setNewProject] = useState({ name: "", description: "", color: "#7c3aed" });
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) { router.push("/auth/sign-in"); return; }
-      fetchProjects();
+      loadData();
     });
   }, [router]);
 
-  const fetchProjects = async () => {
-    const res = await fetch("/api/projects");
-    if (res.ok) {
-      const data = await res.json();
-      setProjects(data.projects || []);
-    }
+  const loadData = async () => {
+    const [projRes, agentRes, actRes] = await Promise.all([
+      fetch("/api/projects"),
+      fetch("/api/agents"),
+      fetch("/api/activity?limit=10"),
+    ]);
+    if (projRes.ok) setProjects((await projRes.json()).projects || []);
+    if (agentRes.ok) setAgents((await agentRes.json()).agents || []);
+    if (actRes.ok) setActivity((await actRes.json()).activity || []);
     setLoading(false);
   };
 
@@ -67,163 +65,235 @@ export default function Dashboard() {
     });
     if (res.ok) {
       setCreateOpen(false);
-      setNewProject({ name: "", description: "", color: "#7c3aed", repo_url: "", channel_url: "" });
-      fetchProjects();
+      setNewProject({ name: "", description: "", color: "#7c3aed" });
+      toast.success("Project created!");
+      loadData();
+    } else {
+      toast.error("Failed to create project");
     }
   };
 
-  const taskCounts = (p: Project) => p.ph_tasks?.[0]?.count || 0;
-  const noteCounts = (p: Project) => p.ph_notes?.[0]?.count || 0;
+  const totalTasks = projects.reduce((sum, p) => {
+    const counts = p.task_counts_by_status || {};
+    return sum + Object.values(counts).reduce((a: number, b: any) => a + Number(b), 0);
+  }, 0);
+
+  const statusColors: Record<string, string> = {
+    idle: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    working: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    offline: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+    error: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-violet-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">PH</span>
-            </div>
-            <span className="font-semibold text-lg text-slate-900">ProjectHub</span>
-          </Link>
+    <div className="min-h-screen bg-background">
+      {/* Nav */}
+      <nav className="border-b sticky top-0 bg-background/80 backdrop-blur-md z-50">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-xs">PH</span>
+              </div>
+              <span className="font-semibold hidden sm:inline">ProjectHub</span>
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/chat">
+              <Button variant="ghost" size="sm"><MessageSquare className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Agent Chat</span></Button>
+            </Link>
+            <Link href="/agents">
+              <Button variant="ghost" size="sm"><Bot className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Agents</span></Button>
+            </Link>
+            <ThemeToggle />
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-6 pb-16">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Mission Control</h1>
+            <p className="text-sm text-muted-foreground">Overview of your projects and AI agents</p>
+          </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-violet-600 hover:bg-violet-700">
-                <Plus className="w-4 h-4 mr-1" /> New Project
-              </Button>
-            </DialogTrigger>
+            <DialogTrigger render={<Button><Plus className="w-4 h-4 mr-1" /> New Project</Button>} />
             <DialogContent>
               <DialogHeader><DialogTitle>Create Project</DialogTitle></DialogHeader>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div>
                   <Label>Project Name</Label>
-                  <Input placeholder="e.g. ProposalPilot" className="mt-1" value={newProject.name} onChange={(e) => setNewProject({ ...newProject, name: e.target.value })} required />
+                  <Input placeholder="e.g. Code Shelf v2" className="mt-1" value={newProject.name}
+                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })} required />
                 </div>
                 <div>
                   <Label>Description</Label>
-                  <Textarea placeholder="What's this project about?" className="mt-1" value={newProject.description} onChange={(e) => setNewProject({ ...newProject, description: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Repo URL</Label>
-                    <Input placeholder="https://github.com/..." className="mt-1" value={newProject.repo_url} onChange={(e) => setNewProject({ ...newProject, repo_url: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Channel URL</Label>
-                    <Input placeholder="Slack channel link" className="mt-1" value={newProject.channel_url} onChange={(e) => setNewProject({ ...newProject, channel_url: e.target.value })} />
-                  </div>
+                  <Textarea placeholder="What's this project about?" className="mt-1" value={newProject.description}
+                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })} />
                 </div>
                 <div>
                   <Label>Color</Label>
                   <div className="flex gap-2 mt-1">
-                    {["#7c3aed", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#6366f1", "#14b8a6"].map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setNewProject({ ...newProject, color: c })}
-                        className={`w-8 h-8 rounded-full transition ${newProject.color === c ? "ring-2 ring-offset-2 ring-slate-400" : ""}`}
-                        style={{ backgroundColor: c }}
-                      />
+                    {["#7c3aed", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899"].map((c) => (
+                      <button key={c} type="button" onClick={() => setNewProject({ ...newProject, color: c })}
+                        className={`w-8 h-8 rounded-full transition ${newProject.color === c ? "ring-2 ring-offset-2 ring-ring" : ""}`}
+                        style={{ backgroundColor: c }} />
                     ))}
                   </div>
                 </div>
-                <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700">Create Project</Button>
+                <Button type="submit" className="w-full">Create Project</Button>
               </form>
             </DialogContent>
           </Dialog>
         </div>
-      </nav>
 
-      <div className="max-w-6xl mx-auto px-6 pt-24 pb-16">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Your Projects</h1>
-          <p className="text-slate-500 mt-1">Track tasks, notes, and decisions across all your AI agent projects.</p>
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2">
+                <FolderKanban className="w-4 h-4 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Active Projects</p>
+                  <p className="text-xl font-bold">{projects.filter((p) => p.status === "active").length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Tasks</p>
+                  <p className="text-xl font-bold">{totalTasks}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2">
+                <Bot className="w-4 h-4 text-blue-500" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Active Agents</p>
+                  <p className="text-xl font-bold">{agents.filter((a) => a.status !== "offline").length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-orange-500" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Recent Activity</p>
+                  <p className="text-xl font-bold">{activity.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-violet-50 rounded-lg"><Folder className="w-5 h-5 text-violet-600" /></div>
-                <div>
-                  <p className="text-sm text-slate-500">Active Projects</p>
-                  <p className="text-2xl font-bold text-slate-900">{projects.filter((p) => p.status === "active").length}</p>
-                </div>
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Projects */}
+          <div className="lg:col-span-2">
+            <h2 className="text-lg font-semibold mb-3">Projects</h2>
+            {loading ? (
+              <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+            ) : projects.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <FolderKanban className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground mb-4">No projects yet. Create one to get started.</p>
+                  <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-1" /> Create Project</Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {projects.map((p) => {
+                  const counts = p.task_counts_by_status || {};
+                  const done = Number(counts["Done"] || 0);
+                  const total = Object.values(counts).reduce((a: number, b: any) => a + Number(b), 0);
+                  return (
+                    <Link key={p.id} href={`/projects/${p.id}`}>
+                      <Card className="hover:shadow-md transition cursor-pointer h-full">
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: p.color + "20" }}>
+                              <FolderKanban className="w-4 h-4" style={{ color: p.color }} />
+                            </div>
+                            <div className="min-w-0">
+                              <CardTitle className="text-sm truncate">{p.name}</CardTitle>
+                              <Badge variant="secondary" className="text-xs">{p.status}</Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pb-4">
+                          {p.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{p.description}</p>}
+                          <div className="flex gap-3 text-xs text-muted-foreground">
+                            <span>{total} tasks</span>
+                            {total > 0 && <span>{Math.round((done / total) * 100)}% done</span>}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  );
+                })}
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 rounded-lg"><CheckSquare className="w-5 h-5 text-blue-600" /></div>
-                <div>
-                  <p className="text-sm text-slate-500">Total Tasks</p>
-                  <p className="text-2xl font-bold text-slate-900">{projects.reduce((a, p) => a + taskCounts(p), 0)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-50 rounded-lg"><FileText className="w-5 h-5 text-green-600" /></div>
-                <div>
-                  <p className="text-sm text-slate-500">Notes</p>
-                  <p className="text-2xl font-bold text-slate-900">{projects.reduce((a, p) => a + noteCounts(p), 0)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </div>
 
-        {/* Project Grid */}
-        {loading ? (
-          <div className="text-center py-12 text-slate-400">Loading...</div>
-        ) : projects.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-16">
-              <Folder className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-slate-700 mb-2">No projects yet</h2>
-              <p className="text-slate-500 mb-6">Create your first project to get started.</p>
-              <Button onClick={() => setCreateOpen(true)} className="bg-violet-600 hover:bg-violet-700">
-                <Plus className="w-4 h-4 mr-1" /> Create Project
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((p) => (
-              <Link key={p.id} href={`/projects/${p.id}`}>
-                <Card className="hover:shadow-lg transition cursor-pointer h-full">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: p.color + "20" }}>
-                          <Folder className="w-5 h-5" style={{ color: p.color }} />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base">{p.name}</CardTitle>
-                          <Badge variant="secondary" className={`text-xs mt-1 ${statusColors[p.status] || ""}`}>{p.status}</Badge>
-                        </div>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-slate-400" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {p.description && (
-                      <p className="text-sm text-slate-500 line-clamp-2 mb-3">{p.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-slate-400">
-                      <span className="flex items-center gap-1"><CheckSquare className="w-3 h-3" /> {taskCounts(p)} tasks</span>
-                      <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {noteCounts(p)} notes</span>
-                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(p.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
-                    </div>
+          {/* Sidebar: Agents + Activity */}
+          <div className="space-y-6">
+            {/* Agent Status */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">Agents</h2>
+                <Link href="/agents"><Button variant="ghost" size="sm">View all</Button></Link>
+              </div>
+              {agents.length === 0 ? (
+                <Card>
+                  <CardContent className="py-6 text-center">
+                    <Bot className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">No agents connected yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Connect OpenClaw to register agents</p>
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
+              ) : (
+                <div className="space-y-2">
+                  {agents.slice(0, 5).map((a) => (
+                    <div key={a.id} className="flex items-center justify-between p-2 rounded-lg border bg-card">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${a.status === "working" ? "bg-blue-500" : a.status === "idle" ? "bg-green-500" : a.status === "error" ? "bg-red-500" : "bg-slate-300"}`} />
+                        <span className="text-sm font-medium">{a.name}</span>
+                      </div>
+                      <Badge variant="secondary" className={`text-xs ${statusColors[a.status] || ""}`}>{a.status}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recent Activity */}
+            <div>
+              <h2 className="text-lg font-semibold mb-3">Recent Activity</h2>
+              {activity.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No activity yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {activity.map((a) => (
+                    <div key={a.id} className="text-sm p-2 rounded border bg-card">
+                      <span className="text-muted-foreground">{a.action}</span>
+                      <span className="text-xs text-muted-foreground block">{new Date(a.created_at).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
