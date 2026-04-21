@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/navbar";
-import { Layers, CheckSquare, FileText, Clock, GitBranch, MessageSquare } from "lucide-react";
+import { Layers, CheckSquare, FileText, Clock, MessageSquare } from "lucide-react";
 
 export default function Home() {
   return (
@@ -41,13 +41,12 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-slate-900">Everything you need to stay organized</h2>
             <p className="mt-4 text-slate-600">Each project gets its own space with full context tracking.</p>
           </div>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             {[
               { icon: Layers, title: "Project Dashboard", desc: "See all projects at a glance — status, health, last activity, task counts." },
               { icon: CheckSquare, title: "Task Boards", desc: "Kanban-style task tracking per project. Todo, in-progress, done, blocked." },
               { icon: FileText, title: "Notes & Docs", desc: "Rich notes per project. Pin important ones. Categorize by type." },
               { icon: Clock, title: "Activity Timeline", desc: "Auto-logged timeline of everything that happened. Never lose context." },
-              { icon: GitBranch, title: "Decision Log", desc: "Record key decisions with rationale. Know why choices were made months later." },
               { icon: MessageSquare, title: "Channel Integration", desc: "Link Slack channels to projects. See which conversations belong where." },
             ].map((f) => (
               <div key={f.title} className="p-6 rounded-xl border border-slate-200 hover:border-violet-200 hover:shadow-lg transition-all bg-white">
