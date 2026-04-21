@@ -86,7 +86,7 @@ export default function Dashboard() {
             <span className="font-semibold text-lg text-slate-900">ProjectHub</span>
           </Link>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger>
+            <DialogTrigger asChild>
               <Button className="bg-violet-600 hover:bg-violet-700">
                 <Plus className="w-4 h-4 mr-1" /> New Project
               </Button>

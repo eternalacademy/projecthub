@@ -243,7 +243,7 @@ export default function ProjectDetail() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Task Board</h2>
               <Dialog open={taskDialog} onOpenChange={setTaskDialog}>
-                <DialogTrigger>
+                <DialogTrigger asChild>
                   <Button size="sm" className="bg-violet-600 hover:bg-violet-700"><Plus className="w-4 h-4 mr-1" /> Add Task</Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -311,7 +311,7 @@ export default function ProjectDetail() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Notes</h2>
               <Dialog open={noteDialog} onOpenChange={setNoteDialog}>
-                <DialogTrigger>
+                <DialogTrigger asChild>
                   <Button size="sm" className="bg-violet-600 hover:bg-violet-700"><Plus className="w-4 h-4 mr-1" /> Add Note</Button>
                 </DialogTrigger>
                 <DialogContent>
